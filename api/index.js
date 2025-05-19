@@ -2,64 +2,91 @@ const express = require('express');
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 const cors = require('cors');
 const serverless = require('serverless-http');
+require('dotenv').config();
 
 const app = express();
 app.use(express.json());
 app.use(cors());
 
-require('dotenv').config();
+const uri = process.env.MONGO_URI;
 
-
-const uri = "mongodb+srv://veleswaran:Vels344@cluster0.u1fy5bo.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0";
-
-const client = new MongoClient(uri, {
-  serverApi: {
-    version: ServerApiVersion.v1,
-    strict: true,
-    deprecationErrors: true,
-  }
-});
-
-let db, usersCollection;
+let cachedClient = null;
+let cachedDb = null;
 
 async function connectToDB() {
-  try {
-    await client.connect();
-    db = client.db('DummyApi');
-    usersCollection = db.collection('users');
-    console.log("MongoDB connected");
-  } catch (err) {
-    console.error(err);
+  if (cachedClient && cachedDb) {
+    return { client: cachedClient, db: cachedDb };
   }
+  const client = new MongoClient(uri, {
+    serverApi: {
+      version: ServerApiVersion.v1,
+      strict: true,
+      deprecationErrors: true,
+    }
+  });
+  await client.connect();
+  const db = client.db('DummyApi');
+  cachedClient = client;
+  cachedDb = db;
+  console.log("MongoDB connected");
+  return { client, db };
 }
-connectToDB();
 
-// Routes (same as before)
 app.get('/api/users', async (req, res) => {
-  const users = await usersCollection.find().toArray();
-  res.json(users);
-});
-app.post('/api/users', async (req, res) => {
-  const result = await usersCollection.insertOne(req.body);
-  res.status(201).json(result);
-});
-app.get('/api/users/:id', async (req, res) => {
-  const user = await usersCollection.findOne({ _id: new ObjectId(req.params.id) });
-  res.json(user);
-});
-app.put('/api/users/:id', async (req, res) => {
-  const result = await usersCollection.findOneAndUpdate(
-    { _id: new ObjectId(req.params.id) },
-    { $set: req.body },
-    { returnDocument: 'after' }
-  );
-  res.json(result.value);
-});
-app.delete('/api/users/:id', async (req, res) => {
-  const result = await usersCollection.deleteOne({ _id: new ObjectId(req.params.id) });
-  res.json({ deleted: result.deletedCount > 0 });
+  try {
+    const { db } = await connectToDB();
+    const users = await db.collection('users').find().toArray();
+    res.json(users);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
-// Export for Vercel serverless
+app.post('/api/users', async (req, res) => {
+  try {
+    const { db } = await connectToDB();
+    const result = await db.collection('users').insertOne(req.body);
+    res.status(201).json(result);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.get('/api/users/:id', async (req, res) => {
+  try {
+    const { db } = await connectToDB();
+    const user = await db.collection('users').findOne({ _id: new ObjectId(req.params.id) });
+    if (!user) return res.status(404).json({ error: "User not found" });
+    res.json(user);
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+app.put('/api/users/:id', async (req, res) => {
+  try {
+    const { db } = await connectToDB();
+    const result = await db.collection('users').findOneAndUpdate(
+      { _id: new ObjectId(req.params.id) },
+      { $set: req.body },
+      { returnDocument: 'after' }
+    );
+    if (!result.value) return res.status(404).json({ error: 'User not found' });
+    res.json(result.value);
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+app.delete('/api/users/:id', async (req, res) => {
+  try {
+    const { db } = await connectToDB();
+    const result = await db.collection('users').deleteOne({ _id: new ObjectId(req.params.id) });
+    if (result.deletedCount === 0) return res.status(404).json({ error: 'User not found' });
+    res.json({ message: 'User deleted' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 module.exports = app;
-module.exports.handler = serverless(app);
