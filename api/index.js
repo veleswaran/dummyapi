@@ -32,6 +32,9 @@ async function connectToDB() {
   return { client, db };
 }
 
+app.get("/",(req,res)=>{
+  res.json({"message":"home screen"})
+})
 app.get('/api/users', async (req, res) => {
   try {
     const { db } = await connectToDB();
