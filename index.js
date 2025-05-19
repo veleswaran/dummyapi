@@ -15,6 +15,5 @@ app.use(postRouter);
 app.get("/",(req,res)=>{
     res.json({"message":"welcome to yours api"})
 })
-
-module.exports = app;
-module.exports.handler = serverless(app);
+export default app;
+export const handler = serverless(app);
