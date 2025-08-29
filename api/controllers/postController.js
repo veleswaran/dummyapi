@@ -40,8 +40,7 @@ export const updatePost = async (req, res) => {
       { $set: req.body },
       { returnDocument: 'after' }
     );
-    if (!result.value) return res.status(404).json({ error: 'Post not found' });
-    res.json(result.value);
+    res.json(result);
   } catch (err) {
     res.status(400).json({ error: err.message });
   }
