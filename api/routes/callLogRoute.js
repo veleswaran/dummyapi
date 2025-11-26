@@ -4,7 +4,9 @@ import {
   createCallLog,
   getCallLogById,
   updateCallLog,
-  deleteCallLog
+  deleteCallLog,
+  deleteCallLogByTypeOrNumberLike,
+  getCallLogsByFilters
 } from '../controllers/callLogController.js';
 
 const callLogRouter = express.Router();
@@ -14,5 +16,7 @@ callLogRouter.post('/call-logs', createCallLog);
 callLogRouter.get('/call-logs/:id', getCallLogById);
 callLogRouter.put('/call-logs/:id', updateCallLog);
 callLogRouter.delete('/call-logs/:id', deleteCallLog);
+callLogRouter.delete('/call-logs',deleteCallLogByTypeOrNumberLike);
+callLogRouter.get('/call-logs-fill',getCallLogsByFilters)
 
 export default callLogRouter;
