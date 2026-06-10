@@ -1,8 +1,6 @@
 import { MongoClient, ServerApiVersion } from 'mongodb';
-import dotenv from 'dotenv';
-dotenv.config();
 
-const uri = process.env.MONGO_URI;
+const uri = "mongodb+srv://veleswaran:Vels344@cluster0.nlwhzwz.mongodb.net/?appName=Cluster0";
 
 let cachedClient = null;
 let cachedDb = null;
